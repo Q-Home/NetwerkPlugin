@@ -20,96 +20,207 @@ $navbar[3]['active'] = false;
 
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
+$logFile = "/opt/loxberry/log/plugins/network_plugin/network_routes.log";
+
 function logMessage($message) {
-    file_put_contents('/tmp/network_routes.log', date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
+    global $logFile;
+    if (!file_exists(dirname($logFile))) {
+        mkdir(dirname($logFile), 0755, true);
+    }
+    file_put_contents($logFile, date("Y-m-d H:i:s") . " - " . $message . "\n", FILE_APPEND);
 }
 
 function getRoutes() {
     logMessage("Fetching routes...");
     $output = shell_exec("ip route show 2>&1");
-    logMessage("Routes output: " . $output);
+    logMessage("Routes output: " . trim($output));
     $routes = explode("\n", trim($output));
     return array_filter($routes);
 }
 
 function getOwnIP() {
-    // Verkrijg het IP-adres van de eth0 interface
-    $output = shell_exec("ip a show eth0 | grep inet | awk '{ print $2 }' | cut -d/ -f1");
+    $output = shell_exec("ip -4 addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | head -n1");
     return trim($output);
 }
 
+$message = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['delete_route'])) {
-        // Haal het eerste deel van de route op (tot de eerste spatie)
-        $route = $_POST['route'];
-        $route_parts = explode(' ', $route); // Splitst de route op basis van spaties
-        $route = $route_parts[0]; // Neem alleen het eerste deel van de route
-    
+        $route = trim($_POST['route']);
+        $escapedRoute = escapeshellarg($route);
         logMessage("Deleting route: $route");
-        $output = shell_exec("sudo ip route del $route 2>&1");
-        logMessage("Delete output: " . $output);
-        echo "<meta http-equiv='refresh' content='0;url=routes.php'>";
-        exit;
-    
+        $output = shell_exec("sudo ip route del $escapedRoute 2>&1");
+        logMessage("Delete output: " . trim($output));
+        $message = "Route verwijderd: $route";
     } elseif (isset($_POST['add_route'])) {
-        $destination = escapeshellarg($_POST['destination']);
-        $gateway = escapeshellarg($_POST['gateway']);
+        $destination = trim($_POST['destination']);
+        $gateway = trim($_POST['gateway']);
+        $escapedDestination = escapeshellarg($destination);
+        $escapedGateway = escapeshellarg($gateway);
         logMessage("Adding route: $destination via $gateway");
-        $output = shell_exec("sudo ip route add $destination via $gateway 2>&1");
-        logMessage("Add output: " . $output);
-        echo "<meta http-equiv='refresh' content='0;url=routes.php'>";
-        exit;
+        $output = shell_exec("sudo ip route add $escapedDestination via $escapedGateway 2>&1");
+        logMessage("Add output: " . trim($output));
+        $message = "Route toegevoegd: $destination via $gateway";
     }
 }
 
 $routes = getRoutes();
-$ownIP = getOwnIP(); // Verkrijg je IP-adres van eth0
+$ownIP = getOwnIP();
 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Routes</title>
-    <style>
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        .form-inline { display: flex; gap: 10px; margin-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <h2>Network Routes</h2>
-    <p><strong>My IP Address (eth0): </strong> <?= htmlspecialchars($ownIP) ?></p> <!-- Toon je eigen IP-adres van eth0 -->
+<style>
+    :root {
+        --bg: #f5f8ff;
+        --card: #ffffff;
+        --border: #dde7f1;
+        --text: #203248;
+        --muted: #5d738c;
+        --primary: #2563eb;
+        --danger: #b91c1c;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 20px;
+    }
+    .section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 4px 16px rgba(23, 42, 69, 0.08);
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    .section h1 {
+        margin-top: 0;
+        font-size: 1.7rem;
+    }
+    .info-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        margin-bottom: 18px;
+    }
+    .info-card {
+        background: #f7fbff;
+        border: 1px solid #e3edf8;
+        border-radius: 14px;
+        padding: 16px;
+    }
+    .info-card strong {
+        display: block;
+        margin-top: 10px;
+        font-size: 1.4rem;
+    }
+    .message {
+        background: #e3f2ff;
+        border-left: 4px solid var(--primary);
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    .form-inline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .form-inline input,
+    .form-inline button {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        font-size: 0.95rem;
+    }
+    .form-inline button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+    .form-inline button:hover {
+        background: #1d4fc1;
+    }
+    .route-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .route-table th,
+    .route-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #e3eaf2;
+        text-align: left;
+    }
+    .route-table th {
+        background: #f8fbff;
+        font-weight: 700;
+    }
+    .route-table tr:hover {
+        background: #f4f8ff;
+    }
+    .button-danger {
+        background: var(--danger);
+        color: white;
+        border: none;
+        padding: 10px 14px;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="section">
+    <h1>Network Routes</h1>
+    <div class="info-grid">
+        <div class="info-card">
+            <div>Huidig eth0 IP-adres</div>
+            <strong><?= htmlspecialchars($ownIP ?: 'Niet beschikbaar') ?></strong>
+        </div>
+        <div class="info-card">
+            <div>Aantal routes</div>
+            <strong><?= number_format(count($routes)) ?></strong>
+        </div>
+    </div>
+
+    <?php if ($message): ?>
+        <div class="message"><?= htmlspecialchars($message) ?></div>
+    <?php endif; ?>
 
     <form method="post" class="form-inline">
-        <input type="text" name="destination" placeholder="Destination" required>
-        <input type="text" name="gateway" placeholder="Gateway" required>
+        <input type="text" name="destination" placeholder="Destination (bijv. 192.168.100.0/24)" required>
+        <input type="text" name="gateway" placeholder="Gateway (bijv. 192.168.100.1)" required>
         <button type="submit" name="add_route">Add Route</button>
     </form>
 
-    <table>
-        <tr>
-            <th>Route</th>
-            <th>Action</th>
-        </tr>
-        <?php foreach ($routes as $route): ?>
-            <tr>
-                <td><?= htmlspecialchars($route) ?></td>
-                <td>
-                    <form method="post" style="display:inline;">
-                        <input type="hidden" name="route" value="<?= htmlspecialchars($route) ?>">
-                        <button type="submit" name="delete_route">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
-</body>
-</html>
+    <div style="overflow-x:auto;">
+        <table class="route-table">
+            <thead>
+                <tr>
+                    <th>Route</th>
+                    <th>Actie</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($routes as $route): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($route) ?></td>
+                        <td>
+                            <form method="post" style="margin:0;">
+                                <input type="hidden" name="route" value="<?= htmlspecialchars($route) ?>">
+                                <button type="submit" name="delete_route" class="button-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-<?php  
+<?php
 LBWeb::lbfooter();
 ?>

@@ -1,18 +1,12 @@
 <?php
-##########################################################################
-# Modules
-##########################################################################
 require_once "loxberry_web.php";
 require_once "loxberry_system.php";
 
 $L = LBSystem::readlanguage("language.ini");
-$template_title = "OZW672 Plugin";
+$template_title = "MQTT Settings";
 $helplink = "http://www.loxwiki.eu:80/x/2wzL";
 $helptemplate = "help.html";
 
-##########################################################################
-# Navbar
-##########################################################################
 $navbar[1]['Name'] = 'Home';
 $navbar[1]['URL'] = 'index.php';
 $navbar[1]['active'] = false;
@@ -24,98 +18,183 @@ $navbar[3]['URL'] = 'mqtt.php';
 $navbar[3]['active'] = true;
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
-##########################################################################
-# Job & Service Status Functions
-##########################################################################
+$config_file = '/opt/loxberry/data/plugins/network_plugin/mqtt_config.ini';
+$log_file = '/opt/loxberry/log/plugins/network_plugin/mqtt_settings.log';
 
-// Define variables
-$config_file = './mqtt_config.ini';
-$log_file = './Log_file.log';
-
-// Logging function
 function log_message($level, $message) {
     global $log_file;
+    if (!file_exists(dirname($log_file))) {
+        mkdir(dirname($log_file), 0755, true);
+    }
     $timestamp = date('Y-m-d H:i:s');
     $log_entry = "[$timestamp] [$level] $message\n";
     file_put_contents($log_file, $log_entry, FILE_APPEND);
 }
 
-// Check if the config file exists and read the values
+$mqtt_host = '192.168.0.169';
+$mqtt_port = '1883';
+$mqtt_user = 'loxberry';
+$mqtt_password = 'loxberry';
+$mqtt_topic_prefix = 'network/changes';
+$saveMessage = '';
+
 if (file_exists($config_file)) {
     $config = parse_ini_file($config_file, true);
-    $mqtt_host = isset($config['MQTT']['host']) ? $config['MQTT']['host'] : '192.168.0.169';
-    $mqtt_port = isset($config['MQTT']['port']) ? $config['MQTT']['port'] : '1883';
-    $mqtt_user = isset($config['MQTT']['user']) ? $config['MQTT']['user'] : 'loxberry';
-    $mqtt_password = isset($config['MQTT']['password']) ? $config['MQTT']['password'] : 'loxberry';
-    $mqtt_topic_prefix = isset($config['MQTT']['topic_prefix']) ? $config['MQTT']['topic_prefix'] : 'loxberry/network/changes';
-} else {
-    // Set default values if the config file does not exist
-    $mqtt_host = '192.168.0.169';
-    $mqtt_port = '1883';
-    $mqtt_user = 'loxberry';
-    $mqtt_password = 'loxberry';
-    $mqtt_topic_prefix = 'loxberry/network/changes';
+    if (isset($config['MQTT'])) {
+        $mqtt_host = $config['MQTT']['host'] ?? $mqtt_host;
+        $mqtt_port = $config['MQTT']['port'] ?? $mqtt_port;
+        $mqtt_user = $config['MQTT']['user'] ?? $mqtt_user;
+        $mqtt_password = $config['MQTT']['password'] ?? $mqtt_password;
+        $mqtt_topic_prefix = $config['MQTT']['topic_prefix'] ?? $mqtt_topic_prefix;
+    }
 }
 
-// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $mqtt_host = $_POST['mqtt_host'];
-    $mqtt_port = $_POST['mqtt_port'];
-    $mqtt_user = $_POST['mqtt_user'];
-    $mqtt_password = $_POST['mqtt_password'];
-    $mqtt_topic_prefix = $_POST['mqtt_topic_prefix'];
+    $mqtt_host = trim($_POST['mqtt_host']);
+    $mqtt_port = trim($_POST['mqtt_port']);
+    $mqtt_user = trim($_POST['mqtt_user']);
+    $mqtt_password = trim($_POST['mqtt_password']);
+    $mqtt_topic_prefix = trim($_POST['mqtt_topic_prefix']);
 
-    // Log the received data
-    log_message('info', "Received data: MQTT Host: $mqtt_host, Port: $mqtt_port, User: $mqtt_user, Topic Prefix: $mqtt_topic_prefix");
+    log_message('info', "Received MQTT settings: host=$mqtt_host, port=$mqtt_port, user=$mqtt_user, topic_prefix=$mqtt_topic_prefix");
 
-    // Save the settings or process them as needed
     if (!file_exists(dirname($config_file))) {
         mkdir(dirname($config_file), 0755, true);
     }
-    $config_data = "[MQTT]\nhost=$mqtt_host\nport=$mqtt_port\nuser=$mqtt_user\npassword=$mqtt_password\ntopic_prefix=$mqtt_topic_prefix\n";
+
+    $config_data = "[MQTT]\n";
+    $config_data .= "host=$mqtt_host\n";
+    $config_data .= "port=$mqtt_port\n";
+    $config_data .= "user=$mqtt_user\n";
+    $config_data .= "password=$mqtt_password\n";
+    $config_data .= "topic_prefix=$mqtt_topic_prefix\n";
+
     file_put_contents($config_file, $config_data);
+    log_message('info', 'MQTT configuration saved to ' . $config_file);
 
-    // Reload the configuration to update the form with the saved values
-    $config = parse_ini_file($config_file, true);
-    $mqtt_host = $config['MQTT']['host'];
-    $mqtt_port = $config['MQTT']['port'];
-    $mqtt_user = $config['MQTT']['user'];
-    $mqtt_password = $config['MQTT']['password'];
-    $mqtt_topic_prefix = $config['MQTT']['topic_prefix'];
+    $saveMessage = 'MQTT-instellingen succesvol opgeslagen.';
 }
-
 ?>
 
-<form method="post">
-    <div class="form-group">
-        <label for="mqtt_host">MQTT Broker Address:</label>
-        <input type="text" id="mqtt_host" name="mqtt_host" value="<?= htmlspecialchars($mqtt_host) ?>" class="form-control" required>
-    </div>
+<style>
+    :root {
+        --bg: #f8fafc;
+        --card: #ffffff;
+        --border: #d1d9e6;
+        --text: #243447;
+        --muted: #5f7285;
+        --primary: #2563eb;
+        --success: #1f7a3f;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 20px;
+    }
+    .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        box-shadow: 0 6px 18px rgba(31, 41, 55, 0.08);
+        padding: 24px;
+        max-width: 820px;
+        margin-bottom: 24px;
+    }
+    .panel h1 {
+        margin-top: 0;
+        font-size: 1.8rem;
+    }
+    .panel p {
+        margin: 8px 0 18px;
+        color: var(--muted);
+        line-height: 1.6;
+    }
+    .form-group {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+    label {
+        font-weight: 600;
+        color: var(--text);
+    }
+    input {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid #c2cbd8;
+        font-size: 0.95rem;
+        background: #f9fbff;
+        color: var(--text);
+    }
+    button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 18px;
+        cursor: pointer;
+        font-size: 0.95rem;
+    }
+    button:hover {
+        background: #1e52c8;
+    }
+    .message {
+        background: #e9f7ed;
+        border-left: 4px solid var(--success);
+        color: var(--text);
+        padding: 14px 16px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+    }
+    .hint {
+        color: var(--muted);
+        font-size: 0.95rem;
+    }
+</style>
 
-    <div class="form-group">
-        <label for="mqtt_port">Port:</label>
-        <input type="number" id="mqtt_port" name="mqtt_port" value="<?= htmlspecialchars($mqtt_port) ?>" class="form-control" required>
-    </div>
+<div class="panel">
+    <h1>MQTT Settings</h1>
+    <p>Configureer hier de verbinding met je MQTT-broker. Deze instellingen worden veilig opgeslagen in de data-map van de plugin.</p>
 
-    <div class="form-group">
-        <label for="mqtt_user">Username:</label>
-        <input type="text" id="mqtt_user" name="mqtt_user" value="<?= htmlspecialchars($mqtt_user) ?>" class="form-control">
-    </div>
+    <?php if ($saveMessage): ?>
+        <div class="message"><?= htmlspecialchars($saveMessage) ?></div>
+    <?php endif; ?>
 
-    <div class="form-group">
-        <label for="mqtt_password">Password:</label>
-        <input type="password" id="mqtt_password" name="mqtt_password" value="<?= htmlspecialchars($mqtt_password) ?>" class="form-control">
-    </div>
+    <form method="post">
+        <div class="form-group">
+            <label for="mqtt_host">MQTT Broker Address</label>
+            <input type="text" id="mqtt_host" name="mqtt_host" value="<?= htmlspecialchars($mqtt_host) ?>" required>
+            <span class="hint">Bijvoorbeeld: 192.168.0.169 of broker.example.com</span>
+        </div>
 
-    <div class="form-group">
-        <label for="mqtt_topic_prefix">MQTT Topic Prefix:</label>
-        <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="<?= htmlspecialchars($mqtt_topic_prefix) ?>" class="form-control" required>
-    </div>
+        <div class="form-group">
+            <label for="mqtt_port">Port</label>
+            <input type="number" id="mqtt_port" name="mqtt_port" value="<?= htmlspecialchars($mqtt_port) ?>" required>
+        </div>
 
-    <button type="submit" class="btn btn-primary">Save Settings</button>
-</form>
+        <div class="form-group">
+            <label for="mqtt_user">Username</label>
+            <input type="text" id="mqtt_user" name="mqtt_user" value="<?= htmlspecialchars($mqtt_user) ?>">
+        </div>
 
-<?php  
-// Finally print the footer  
+        <div class="form-group">
+            <label for="mqtt_password">Password</label>
+            <input type="password" id="mqtt_password" name="mqtt_password" value="<?= htmlspecialchars($mqtt_password) ?>">
+        </div>
+
+        <div class="form-group">
+            <label for="mqtt_topic_prefix">MQTT Topic Prefix</label>
+            <input type="text" id="mqtt_topic_prefix" name="mqtt_topic_prefix" value="<?= htmlspecialchars($mqtt_topic_prefix) ?>" required>
+            <span class="hint">Bijvoorbeeld: network/changes</span>
+        </div>
+
+        <button type="submit">Save Settings</button>
+    </form>
+</div>
+
+<?php
 LBWeb::lbfooter();
 ?>

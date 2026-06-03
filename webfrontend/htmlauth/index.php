@@ -20,165 +20,276 @@ $navbar[3]['Name'] = 'MQTT Settings';
 $navbar[3]['URL'] = 'mqtt.php';
 $navbar[3]['active'] = false;
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
-?>
 
-<h1>Home</h1>
-
-<?php
 header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
 header('Pragma: no-cache');
 
-// Include de scanner functionaliteit
 include_once('/opt/loxberry/bin/plugins/network_plugin/scanner.php');
 
-// Logbestand pad
 $logFile = "/opt/loxberry/log/plugins/network_plugin/network_scan.log";
-$datFile = "/opt/loxberry/data/plugins/network_plugin/scandata.dat";
 
-// Functie om de logs uit het logbestand te laden
 function loadLogs($logFile) {
-    clearstatcache();  // Clear de cache zodat PHP het bestand vers leest
+    clearstatcache();
     if (file_exists($logFile)) {
         $logs = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        return array_slice($logs, -10); // Laatste 10 logs
+        return array_slice($logs, -12);
     }
     return [];
 }
 
-// Laad logs (tot de laatste 10 regels)
 $logs = loadLogs($logFile);
-
-// Lees de opgeslagen gegevens uit het .dat bestand
 $storedData = loadExistingData();
+$scanMessage = '';
+$changes = [];
+$newDeviceCount = 0;
+$removedDeviceCount = 0;
+$lastScan = 'Nog geen scan uitgevoerd';
 
-// Als de scan is getriggerd, voer de scan uit en werk de logs bij
 if (isset($_POST['scan'])) {
     list($changes, $newDevices) = performScan();
-    $logs = loadLogs($logFile); // Logs verversen na de scan
-    $storedData = $newDevices; // Update de opgeslagen gegevens met de laatste scan
-    echo "<meta http-equiv='refresh' content='0;url=index.php'>";
+    $storedData = loadExistingData();
+    $logs = loadLogs($logFile);
+
+    if (!empty($changes)) {
+        foreach ($changes as $change) {
+            if (stripos($change, 'New device found') !== false) {
+                $newDeviceCount++;
+            } elseif (stripos($change, 'Device removed') !== false) {
+                $removedDeviceCount++;
+            }
+        }
+        $scanMessage = "Scan voltooid. $newDeviceCount nieuwe apparaten, $removedDeviceCount verwijderde apparaten.";
+    } else {
+        $scanMessage = "Scan voltooid. Geen wijzigingen gedetecteerd.";
+    }
+}
+
+foreach (array_reverse($logs) as $line) {
+    if (strpos($line, 'Network scan complete') !== false) {
+        $lastScan = substr($line, 1, 19);
+        break;
+    }
 }
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Scan</title>
-    <style>
-        /* Stijl voor de tabel */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
+<style>
+    :root {
+        --bg: #f3f6fb;
+        --card: #ffffff;
+        --border: #d7e1ec;
+        --text: #22313f;
+        --muted: #6a7a8c;
+        --primary: #2054a6;
+        --success: #1f7a51;
+        --warning: #d9821f;
+        --danger: #c0392b;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        margin: 0;
+        padding: 0 20px 24px;
+    }
+    .page-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        margin: 20px 0 10px;
+    }
+    .page-header h1 {
+        margin: 0;
+        font-size: 1.9rem;
+    }
+    .button-primary {
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 18px;
+        font-size: 0.95rem;
+        cursor: pointer;
+    }
+    .button-primary:hover {
+        background: #18458a;
+    }
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .meta-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 20px;
+        box-shadow: 0 4px 12px rgba(20, 40, 60, 0.08);
+    }
+    .meta-card h2 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--muted);
+    }
+    .meta-card strong {
+        display: block;
+        margin-top: 12px;
+        font-size: 1.7rem;
+    }
+    .alert {
+        background: #e8f1ff;
+        border-left: 4px solid var(--primary);
+        padding: 14px 16px;
+        border-radius: 10px;
+        margin-bottom: 24px;
+    }
+    .card-panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 3px 10px rgba(20, 40, 60, 0.05);
+        margin-bottom: 24px;
+    }
+    .card-panel h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+    }
+    .device-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+    }
+    .device-table th,
+    .device-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #eef2f7;
+    }
+    .device-table th {
+        background: #f7fafc;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        font-size: 0.9rem;
+    }
+    .device-table tr:hover {
+        background: #f2f6fb;
+    }
+    .log-panel {
+        margin-top: 12px;
+    }
+    #log-viewer {
+        background: #f9fbff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px;
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .log-entry {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.95rem;
+        line-height: 1.55;
+        padding: 10px 0;
+        border-bottom: 1px solid #ebf0f6;
+    }
+    .log-entry:last-child {
+        border-bottom: none;
+    }
+    .log-info { color: var(--text); }
+    .log-warning { color: var(--warning); }
+    .log-error { color: var(--danger); }
+</style>
 
-        /* Log viewer styling */
-        #log-viewer {
-            width: 100%;
-            height: 300px;
-            overflow-y: scroll;
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-top: 20px;
-        }
-        .log-info {
-            color: #000000;
-        }
-        .log-warning {
-            color: #FF9800;
-        }
-        .log-error {
-            color: #F44336;
-        }
-        .log-info, .log-warning, .log-error {
-            padding: 5px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        /* Stijl voor apparaat veranderingen */
-        .new-device {
-            background-color: #d4f7d4; /* Light Green */
-        }
-        .removed-device {
-            background-color: #f7d4d4; /* Light Red */
-        }
-    </style>
-</head>
-<body>
-    <h2>Network Scan</h2>
-    
-    <!-- Knop om scan te starten -->
-    <form method="post">
-        <button type="submit" name="scan">Scan Network</button>
+<div class="page-header">
+    <div>
+        <h1>Network Scan</h1>
+        <p>Voer scans uit, bekijk apparaten en controleer logs met één overzichtelijke interface.</p>
+    </div>
+    <form method="post" style="margin:0;">
+        <button type="submit" name="scan" class="button-primary">Start nieuwe scan</button>
     </form>
-
-    <h3>Current Network Devices</h3>
-    <table>
-        <tr>
-            <th>Hostname</th>
-            <th>IP Address</th>
-            <th>MAC Address</th>
-            <th>Vendor</th>
-            <th>Last Seen</th>
-        </tr>
-        <?php foreach ($storedData as $mac => $device): ?>
-            <?php
-            // Highlight veranderingen
-            $rowClass = '';
-            if (isset($changes) && in_array("Device JOINED NETWORK: {$device['hostname']} ({$device['ip']}) [MAC: $mac]", $changes)) {
-                $rowClass = 'new-device'; // Nieuw apparaat
-            } elseif (isset($changes) && in_array("Device LEFT NETWORK: {$device['hostname']} ({$device['ip']}) [MAC: $mac]", $changes)) {
-                $rowClass = 'removed-device'; // Verwijderd apparaat
-            }
-            ?>
-            <tr class="<?= $rowClass ?>">
-                <td><?php echo htmlspecialchars($device['hostname'] ?? 'Unknown'); ?></td>
-                <td><?php echo htmlspecialchars($device['ip'] ?? 'Unknown'); ?></td>
-                <td><?php echo htmlspecialchars($device['mac'] ?? 'Unknown'); ?></td>
-                <td><?php echo htmlspecialchars($device['vendor'] ?? 'Unknown'); ?></td>
-                <td><?php echo htmlspecialchars($device['last_seen'] ?? 'Unknown'); ?></td>
-            </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <!-- Log viewer sectie -->
-    <h3>Log Viewer</h3>
-    <div id="log-viewer">
-    <?php 
-    // Omgekeerde logs weergeven (nieuwste bovenaan)
-    $logs = array_reverse($logs);
-    foreach ($logs as $line):
-        $logClass = '';
-        if (strpos($line, '[error]') !== false) {
-            $logClass = 'log-error';
-        } elseif (strpos($line, '[warning]') !== false) {
-            $logClass = 'log-warning';
-        } else {
-            $logClass = 'log-info';
-        }
-    ?>
-        <div class="<?= $logClass ?>">
-            <?= htmlspecialchars($line) ?>
-        </div>
-    <?php endforeach; ?>
 </div>
 
+<div class="meta-grid">
+    <div class="meta-card">
+        <h2>Totaal gedetecteerde apparaten</h2>
+        <strong><?= number_format(count($storedData)) ?></strong>
+    </div>
+    <div class="meta-card">
+        <h2>Laatste scan</h2>
+        <strong><?= htmlspecialchars($lastScan) ?></strong>
+    </div>
+    <div class="meta-card">
+        <h2>Nieuwe apparaten</h2>
+        <strong><?= number_format($newDeviceCount) ?></strong>
+    </div>
+    <div class="meta-card">
+        <h2>Verwijderde apparaten</h2>
+        <strong><?= number_format($removedDeviceCount) ?></strong>
+    </div>
+</div>
 
-</body>
-</html>
+<?php if ($scanMessage): ?>
+    <div class="alert"><?= htmlspecialchars($scanMessage) ?></div>
+<?php endif; ?>
+
+<div class="card-panel">
+    <h2>Netwerkapparaten</h2>
+    <?php if (empty($storedData)): ?>
+        <p>Er zijn nog geen apparaten opgeslagen. Klik op "Start nieuwe scan" om apparaten te ontdekken.</p>
+    <?php else: ?>
+        <table class="device-table">
+            <thead>
+                <tr>
+                    <th>Hostname</th>
+                    <th>IP</th>
+                    <th>MAC</th>
+                    <th>Vendor</th>
+                    <th>Last seen</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($storedData as $mac => $device): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($device['hostname'] ?? 'Unknown') ?></td>
+                        <td><?= htmlspecialchars($device['ip'] ?? 'Unknown') ?></td>
+                        <td><?= htmlspecialchars($device['mac'] ?? 'Unknown') ?></td>
+                        <td><?= htmlspecialchars($device['vendor'] ?? 'Unknown') ?></td>
+                        <td><?= htmlspecialchars($device['last_seen'] ?? 'Unknown') ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</div>
+
+<div class="card-panel log-panel">
+    <h2>Recente logs</h2>
+    <div id="log-viewer">
+        <?php if (empty($logs)): ?>
+            <div class="log-entry log-info">Geen logregels gevonden.</div>
+        <?php else: ?>
+            <?php foreach ($logs as $line): ?>
+                <?php
+                    $styleClass = 'log-info';
+                    if (stripos($line, 'error') !== false) {
+                        $styleClass = 'log-error';
+                    } elseif (stripos($line, 'warning') !== false) {
+                        $styleClass = 'log-warning';
+                    }
+                ?>
+                <div class="log-entry <?= $styleClass ?>"><?= htmlspecialchars($line) ?></div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</div>
+
+<?php
+LBWeb::lbfooter();
+?>
 
 <?php  
 // Footer afdrukken

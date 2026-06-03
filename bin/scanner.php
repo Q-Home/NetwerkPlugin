@@ -1,21 +1,24 @@
 <?php
 $logFile = "/opt/loxberry/log/plugins/network_plugin/network_scan.log";
 $datFile = "/opt/loxberry/data/plugins/network_plugin/scandata.dat";
-$mqttConfigFile = "/opt/loxberry/webfrontend/htmlauth/plugins/network_plugin/mqtt_config.ini";
+$mqttConfigFile = "/opt/loxberry/data/plugins/network_plugin/mqtt_config.ini";
 
 require('/opt/loxberry/bin/plugins/network_plugin/phpMQTT/phpMQTT.php');
 
 // Logging functie
 function logChange($message) {
     global $logFile;
+    if (!file_exists(dirname($logFile))) {
+        mkdir(dirname($logFile), 0755, true);
+    }
     $timestamp = date('Y-m-d H:i:s');
     $logEntry = "[$timestamp] $message\n";
     file_put_contents($logFile, $logEntry, FILE_APPEND);
 }
 
-// Functie om MAC-adres op te halen via IP (ARP)
+// Functie om MAC-adres op te halen via IP
 function getMacAddressFromIp($ip) {
-    $mac = trim(shell_exec("ip link show eth0 | awk '/ether/ {print $2}'"));
+    $mac = trim(shell_exec("ip neigh show " . escapeshellarg($ip) . " | awk '/lladdr/ {print $5}'"));
     return !empty($mac) ? strtoupper($mac) : "Unknown";
 }
 
@@ -115,15 +118,14 @@ function loadMQTTConfig() {
 // Publiceer gegevens naar MQTT
 function publishToMQTT($topic, $message) {
     $config = loadMQTTConfig();
-    
-    // Controleer of de configuratie goed is geladen
     if (empty($config)) return;
 
-    // Maak verbinding met de MQTT-broker en publiceer het bericht
+    $prefix = rtrim($config['topic_prefix'], '/');
+    $topic = ltrim($topic, '/');
+    $fullTopic = $topic !== '' ? "$prefix/$topic" : $prefix;
+
     $mqtt = new Bluerhinos\phpMQTT($config['host'], $config['port'], "loxberry_network_scanner");
     if ($mqtt->connect(true, NULL, $config['user'], $config['password'])) {
-        // Voeg het topic-prefix toe aan het opgegeven topic
-        $fullTopic = $config['topic_prefix'] . $topic;
         $mqtt->publish($fullTopic, $message, 0);
         $mqtt->close();
     } else {
@@ -200,19 +202,22 @@ function performScan() {
     if (!empty($changes)) {
         foreach ($changes as $change) {
             logChange($change);
-            publishToMQTT("network/changes", json_encode(["timestamp" => $timestamp, "message" => $change]));
+            publishToMQTT('', json_encode(["timestamp" => $timestamp, "message" => $change]));
         }
 
-        // Als er veranderingen zijn, sla dan de nieuwe data op in het .dat-bestand
         saveToDatFile($newDevices);
         logChange("Network scan complete. Data updated.");
+    } else {
+        logChange("Network scan complete. No changes detected.");
     }
+
+    return [$changes, $newDevices];
 }
 
 // Uitvoeren van de netwerkscan via de commandoregel
 if (php_sapi_name() == "cli") {
     echo "Running Network Scan...\n";
-    performScan();
+    list($changes, $newDevices) = performScan();
     echo "Scan complete. Results logged and published to MQTT.\n";
 }
 ?>

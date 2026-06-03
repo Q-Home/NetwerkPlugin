@@ -1,45 +1,54 @@
 # NetwerkPlugin
 
-NetwerkPlugin is een LoxBerry-plugin ontwikkeld door Q-Home voor het beheren, monitoren en automatiseren van netwerkgerelateerde functionaliteiten binnen een LoxBerry-omgeving.
+![NetwerkPlugin](https://img.shields.io/badge/Q-Home-NetwerkPlugin-blue)
+![License](https://img.shields.io/badge/license-Apache%202.0-green)
 
-## Overzicht
+## 🚀 Wat is NetwerkPlugin?
 
-Deze plugin biedt een eenvoudige manier om netwerkapparaten te detecteren, monitoren en integreren binnen LoxBerry en Loxone automatiseringen. Het doel van de plugin is om netwerkstatussen beschikbaar te maken voor automatiseringsscenario's en netwerkbeheer te vereenvoudigen.
+NetwerkPlugin is een krachtige LoxBerry-plugin voor netwerkdetectie, monitoring en automatisering. De plugin brengt netwerkstatussen direct beschikbaar in je LoxBerry-omgeving en maakt integratie met Loxone eenvoudig.
 
-## Functies
+## ✨ Hoofdpunten
 
-* Detecteren van netwerkapparaten
-* Monitoren van netwerkstatussen
-* Integratie met Loxone via LoxBerry
-* Gebruiksvriendelijke webinterface
-* Automatische updates via LoxBerry Plugin Management
-* Logging en diagnostische informatie
-* Configureerbare netwerkparameters
+- Netwerkapparaten automatisch detecteren en monitoren
+- Handige webinterface voor eenvoudige configuratie
+- Integratie met Loxone en LoxBerry workflows
+- Configureerbare scans, logging en notificaties
+- Ondersteuning voor automatische plugin-updates
 
-## Vereisten
+## 📌 Belangrijkste functies
 
-### Software
+| Feature      | Beschrijving                                          |
+| ------------ | ----------------------------------------------------- |
+| Detectie     | Vind apparaten in je netwerk zonder handmatig scannen |
+| Monitoring   | Houd beschikbaarheid en connectiviteit in de gaten    |
+| Integratie   | Koppel netwerkstatussen aan Loxone automatiseringen   |
+| Logging      | Verzamel diagnostische data voor probleemoplossing    |
+| Configuratie | Stel bereik, interval en meldingen flexibel in        |
 
-* LoxBerry (laatste stabiele versie aanbevolen)
-* Linux-gebaseerd LoxBerry systeem
-* Netwerktoegang tot de te beheren apparaten
+## ⚙️ Vereisten
+
+### Systeem
+
+- LoxBerry (laatste stabiele versie aanbevolen)
+- Linux-gebaseerd LoxBerry-systeem
+- Netwerktoegang tot de te beheren apparaten
 
 ### Ontwikkeling
 
-* Git
-* Node.js
-* npm
+- Git
+- Node.js
+- npm
 
-## Installatie
+## 📥 Installatie
 
 ### Installatie via LoxBerry
 
-1. Download de laatste release via GitHub.
-2. Open de LoxBerry webinterface.
-3. Ga naar **Plugin Management**.
-4. Kies **Plugin installeren**.
-5. Upload het pluginpakket.
-6. Voltooi de installatieprocedure.
+1. Download de nieuwste release van GitHub
+2. Open de LoxBerry webinterface
+3. Ga naar **Plugin Management**
+4. Selecteer **Plugin installeren**
+5. Upload het pluginpakket
+6. Volg de installatiestappen
 
 ### Handmatige installatie
 
@@ -47,58 +56,42 @@ Deze plugin biedt een eenvoudige manier om netwerkapparaten te detecteren, monit
 git clone https://github.com/Q-Home/NetwerkPlugin.git
 ```
 
-Verpak de plugin vervolgens volgens de LoxBerry richtlijnen en installeer deze via de Plugin Manager.
+Verpak de plugin daarna volgens de LoxBerry-richtlijnen en installeer via de Plugin Manager.
 
-## Configuratie
+## ⚙️ Configuratie
 
-Na installatie is de plugin beschikbaar via:
+Na installatie vind je de plugin via:
 
 ```text
 LoxBerry → Plugins → NetwerkPlugin
 ```
 
-Hier kunnen onder andere de volgende instellingen worden geconfigureerd:
+Configureer hier onder andere:
 
-* Netwerkbereiken
-* Scanintervallen
-* Loggingniveau
-* Integratie-instellingen
-* Meldingen en statusupdates
+- Netwerkbereiken
+- Scanintervallen
+- Loggingniveau
+- Integratie-instellingen
+- Meldingen en statusupdates
 
-## Projectstructuur
+## 📁 Projectstructuur
 
 ```text
 NetwerkPlugin/
-├── bin/
-│   └── plugin scripts
-│
-├── config/
-│   └── configuratiebestanden
-│
-├── cron/
-│   └── geplande taken
-│
-├── data/
-│   └── runtime data
-│
-├── icons/
-│   └── plugin iconen
-│
-├── sudoers/
-│   └── sudo configuraties
-│
-├── templates/
-│   └── web templates
-│
-├── webfrontend/
-│   └── gebruikersinterface
-│
+├── bin/             # plugin scripts
+├── config/          # configuratiebestanden
+├── cron/            # geplande taken
+├── data/            # runtime data
+├── icons/           # iconen voor de plugin
+├── sudoers/         # sudo configuraties
+├── templates/       # web templates
+├── webfrontend/     # gebruikersinterface
 ├── plugin.cfg
 ├── package.json
 └── README.md
 ```
 
-## Ontwikkeling
+## 🛠️ Ontwikkelen
 
 ### Repository clonen
 
@@ -113,13 +106,13 @@ cd NetwerkPlugin
 npm install
 ```
 
-### Lokale ontwikkeling
+### Lokaal testen
 
-Na het clonen kunnen wijzigingen lokaal worden ontwikkeld en getest binnen een LoxBerry ontwikkelomgeving.
+Ontwikkelingen kunnen lokaal worden gemaakt en getest in een LoxBerry ontwikkelomgeving.
 
-## Releaseproces
+## 🚚 Releaseproces
 
-Het project bevat tooling voor geautomatiseerde releases.
+Deze repository bevat tools voor geautomatiseerde release-workflows.
 
 ### Nieuwe release
 
@@ -134,27 +127,25 @@ npm run release
 npm run prerelease
 ```
 
-Tijdens het releaseproces worden automatisch:
+Tijdens releases worden automatisch:
 
-* Versienummers bijgewerkt
-* `plugin.cfg` aangepast
-* Git-tags aangemaakt
-* Changelog bijgewerkt
-* GitHub Release voorbereid
+- versienummers bijgewerkt
+- `plugin.cfg` aangepast
+- Git-tags aangemaakt
+- changelog gegenereerd
+- GitHub Release voorbereid
 
-## Logging
+## 🧾 Logging
 
-Logbestanden worden opgeslagen volgens de standaard LoxBerry conventies en kunnen worden geraadpleegd via:
+Logbestanden zijn beschikbaar via de standaard LoxBerry logbeheerinterface:
 
 ```text
 LoxBerry → Log Management
 ```
 
-## Bijdragen
+## 🤝 Bijdragen
 
-Bijdragen zijn welkom.
-
-### Workflow
+Bijdragen zijn welkom!
 
 1. Fork de repository
 2. Maak een feature branch
@@ -169,7 +160,7 @@ git checkout -b feature/mijn-feature
 git commit -m "Nieuwe functionaliteit toegevoegd"
 ```
 
-4. Push naar je branch
+4. Push je branch
 
 ```bash
 git push origin feature/mijn-feature
@@ -177,25 +168,16 @@ git push origin feature/mijn-feature
 
 5. Maak een Pull Request
 
-## Ondersteuning
+## 📫 Ondersteuning
 
-Voor bugs, feature requests of vragen:
+Voor bugs, verzoeken of vragen:
 
-* Open een issue op GitHub
-* Neem contact op met Q-Home
+- Open een issue op GitHub
+- Neem contact op met Q-Home
 
-## Repository
+## 📄 Licentie
 
-GitHub:
-
-https://github.com/Q-Home/NetwerkPlugin
-
-## Licentie
-
-Dit project wordt uitgebracht onder de Apache License 2.0.
-
-Zie het bestand `LICENSE` voor de volledige licentietekst.
-
----
+NetwerkPlugin is gelicentieerd onder Apache License 2.0.
+Zie `LICENSE` voor de volledige licentietekst.
 
 Ontwikkeld door **Q-Home**
