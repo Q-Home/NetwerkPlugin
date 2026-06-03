@@ -63,37 +63,44 @@ PSBIN=$LBPSBIN/$PDIR
 PBIN=$LBPBIN/$PDIR
 
 # your code goes here
-sudo apt install arp-scan
 
-sudo chmod +x /opt/loxberry/bin/plugins/network_plugin/scanner.php
-#!/bin/bash
-
-# Installatiepad voor phpMQTT
-PLUGIN_DIR="/opt/loxberry/bin/plugins/network_plugin"
+PLUGIN_DIR="${LBPBIN:-${LBHOMEDIR}/bin/plugins}/$PDIR"
 PHP_MQTT_DIR="$PLUGIN_DIR/phpMQTT"
+INSTALL_SCRIPT="$PLUGIN_DIR/install.sh"
+SCANNER_SCRIPT="$PLUGIN_DIR/scanner.php"
 
-# Controleer of de pluginmap bestaat
+if ! command -v arp-scan >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "<INFO> Installing arp-scan..."
+        sudo apt-get update -qq
+        sudo apt-get install -y arp-scan
+    else
+        echo "<WARNING> apt-get not available, please install arp-scan manually."
+    fi
+fi
+
 if [ ! -d "$PLUGIN_DIR" ]; then
-    echo "Fout: Plugin map niet gevonden!"
+    echo "<ERROR> Plugin directory not found: $PLUGIN_DIR"
     exit 1
 fi
 
-# Controleer of phpMQTT al is geïnstalleerd
 if [ ! -d "$PHP_MQTT_DIR" ]; then
-    echo "phpMQTT niet gevonden, downloaden..."
+    echo "<INFO> phpMQTT not found, downloading..."
     git clone https://github.com/bluerhinos/phpMQTT.git "$PHP_MQTT_DIR"
 else
-    echo "phpMQTT is al geïnstalleerd."
+    echo "<INFO> phpMQTT is already installed."
 fi
 
-# Controleer of de juiste bestandsmachtigingen zijn ingesteld
 chmod -R 755 "$PHP_MQTT_DIR"
 chmod 644 "$PHP_MQTT_DIR/phpMQTT.php"
 
-# Succesmelding
-echo "Installatie voltooid!"
+if [ -f "$SCANNER_SCRIPT" ]; then
+    chmod +x "$SCANNER_SCRIPT"
+fi
 
-chmod +x /opt/loxberry/bin/plugins/network_plugin/install.sh
+if [ -f "$INSTALL_SCRIPT" ]; then
+    chmod +x "$INSTALL_SCRIPT"
+fi
 
-# Exit with Status 0
+echo "<OK> Post-install completed successfully."
 exit 0

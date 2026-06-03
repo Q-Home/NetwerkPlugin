@@ -1,9 +1,28 @@
 <?php
-$logFile = "/opt/loxberry/log/plugins/network_plugin/network_scan.log";
-$datFile = "/opt/loxberry/data/plugins/network_plugin/scandata.dat";
-$mqttConfigFile = "/opt/loxberry/data/plugins/network_plugin/mqtt_config.ini";
+$pluginName = 'network_plugin';
+$loxberryRoot = getenv('LBHOMEDIR');
+if (!$loxberryRoot) {
+    $marker = '/bin/plugins/';
+    if (strpos(__DIR__, $marker) !== false) {
+        $loxberryRoot = substr(__DIR__, 0, strpos(__DIR__, $marker));
+    } else {
+        $loxberryRoot = dirname(__DIR__, 3);
+    }
+}
+$loxberryRoot = rtrim($loxberryRoot, '/');
 
-require('/opt/loxberry/bin/plugins/network_plugin/phpMQTT/phpMQTT.php');
+$pluginBin = getenv('LBPBIN') ?: $loxberryRoot . '/bin/plugins';
+$pluginDataRoot = getenv('LBPDATA') ?: $loxberryRoot . '/data/plugins';
+$pluginLogRoot = getenv('LBPLOG') ?: $loxberryRoot . '/log/plugins';
+$pluginBin = rtrim($pluginBin, '/');
+$pluginDataRoot = rtrim($pluginDataRoot, '/');
+$pluginLogRoot = rtrim($pluginLogRoot, '/');
+
+$logFile = $pluginLogRoot . '/network_plugin/network_scan.log';
+$datFile = $pluginDataRoot . '/network_plugin/scandata.dat';
+$mqttConfigFile = $pluginDataRoot . '/network_plugin/mqtt_config.ini';
+
+require($pluginBin . '/network_plugin/phpMQTT/phpMQTT.php');
 
 // Logging functie
 function logChange($message) {
@@ -25,6 +44,14 @@ function getMacAddressFromIp($ip) {
 function getLoxberryMac() {
     $mac = trim(shell_exec("ip link show eth0 | awk '/ether/ {print $2}'"));
     return !empty($mac) ? strtoupper($mac) : "Unknown";
+}
+
+function resolveHostnameByIp($ip) {
+    $hostname = gethostbyaddr($ip);
+    if ($hostname && $hostname !== $ip) {
+        return $hostname;
+    }
+    return "Unknown";
 }
 
 // Netwerkscan functie met nmap
@@ -51,6 +78,10 @@ function scanNetwork() {
                         $device['mac'] = getLoxberryMac(); // Voeg het eigen MAC-adres toe als MAC onbekend is
                     }
                 }
+                if (empty($device['hostname']) || $device['hostname'] === $device['ip'] || filter_var($device['hostname'], FILTER_VALIDATE_IP)) {
+                    $device['hostname'] = resolveHostnameByIp($device['ip']);
+                }
+                $device['dns_name'] = resolveHostnameByIp($device['ip']);
                 $device['last_seen'] = date('Y-m-d H:i:s');
                 $key = ($device['mac'] !== "Unknown") ? strtoupper($device['mac']) : $device['ip'];
                 $newDevices[$key] = $device;
@@ -72,6 +103,10 @@ function scanNetwork() {
                 $device['mac'] = getLoxberryMac(); // Voeg het eigen MAC-adres toe als MAC onbekend is
             }
         }
+        if (empty($device['hostname']) || $device['hostname'] === $device['ip'] || filter_var($device['hostname'], FILTER_VALIDATE_IP)) {
+            $device['hostname'] = resolveHostnameByIp($device['ip']);
+        }
+        $device['dns_name'] = resolveHostnameByIp($device['ip']);
         $device['last_seen'] = date('Y-m-d H:i:s');
         $key = ($device['mac'] !== "Unknown") ? strtoupper($device['mac']) : $device['ip'];
         $newDevices[$key] = $device;

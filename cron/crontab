@@ -10,7 +10,7 @@
 
 MAILTO=""
 SHELL=/bin/sh
-PATH=/opt/loxberry/bin/plugins:/usr/bin:/bin:
+PATH=/usr/bin:/bin
 
 # m h dom mon dow user  command
-0 * * * * loxberry php $PATH/network_plugin/scanner.php
+0 * * * * loxberry bash -lc 'php "${LBPBIN:-${LBHOMEDIR}/bin/plugins}/network_plugin/scanner.php"'

@@ -4,6 +4,21 @@ require_once "loxberry_system.php";
 
 $L = LBSystem::readlanguage("language.ini");
 
+$pluginName = 'network_plugin';
+$loxberryRoot = getenv('LBHOMEDIR');
+if (!$loxberryRoot) {
+    $marker = '/webfrontend/htmlauth';
+    if (strpos(__DIR__, $marker) !== false) {
+        $loxberryRoot = substr(__DIR__, 0, strpos(__DIR__, $marker));
+    } else {
+        $loxberryRoot = dirname(__DIR__, 3);
+    }
+}
+$loxberryRoot = rtrim($loxberryRoot, '/');
+
+$pluginLogRoot = getenv('LBPLOG') ?: $loxberryRoot . '/log/plugins';
+$pluginLogRoot = rtrim($pluginLogRoot, '/');
+
 $template_title = "Network Routes";
 $helplink = "http://www.loxwiki.eu:80/x/2wzL";
 $helptemplate = "help.html";
@@ -17,10 +32,13 @@ $navbar[2]['active'] = true;
 $navbar[3]['Name'] = 'MQTT Settings';
 $navbar[3]['URL'] = 'mqtt.php';
 $navbar[3]['active'] = false;
+$navbar[4]['Name'] = 'DNS Server';
+$navbar[4]['URL'] = 'dns.php';
+$navbar[4]['active'] = false;
 
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
-$logFile = "/opt/loxberry/log/plugins/network_plugin/network_routes.log";
+$logFile = $pluginLogRoot . '/network_plugin/network_routes.log';
 
 function logMessage($message) {
     global $logFile;

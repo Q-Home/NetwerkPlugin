@@ -2,8 +2,24 @@
 require_once "loxberry_web.php";
 require_once "loxberry_system.php";
 
-// This will read your language files to the array $L
 $L = LBSystem::readlanguage("language.ini");
+
+$pluginName = 'network_plugin';
+$loxberryRoot = getenv('LBHOMEDIR');
+if (!$loxberryRoot) {
+    $marker = '/webfrontend/htmlauth';
+    if (strpos(__DIR__, $marker) !== false) {
+        $loxberryRoot = substr(__DIR__, 0, strpos(__DIR__, $marker));
+    } else {
+        $loxberryRoot = dirname(__DIR__, 3);
+    }
+}
+$loxberryRoot = rtrim($loxberryRoot, '/');
+
+$pluginBin = getenv('LBPBIN') ?: $loxberryRoot . '/bin/plugins';
+$pluginLogRoot = getenv('LBPLOG') ?: $loxberryRoot . '/log/plugins';
+$pluginBin = rtrim($pluginBin, '/');
+$pluginLogRoot = rtrim($pluginLogRoot, '/');
 
 $template_title = "network_plugin";
 $helplink = "http://www.loxwiki.eu:80/x/2wzL";
@@ -19,15 +35,18 @@ $navbar[2]['active'] = false;
 $navbar[3]['Name'] = 'MQTT Settings';
 $navbar[3]['URL'] = 'mqtt.php';
 $navbar[3]['active'] = false;
+$navbar[4]['Name'] = 'DNS Server';
+$navbar[4]['URL'] = 'dns.php';
+$navbar[4]['active'] = false;
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
 header('Cache-Control: no-cache, must-revalidate');
 header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
 header('Pragma: no-cache');
 
-include_once('/opt/loxberry/bin/plugins/network_plugin/scanner.php');
+include_once($pluginBin . '/' . $pluginName . '/scanner.php');
 
-$logFile = "/opt/loxberry/log/plugins/network_plugin/network_scan.log";
+$logFile = $pluginLogRoot . '/' . $pluginName . '/network_scan.log';
 
 function loadLogs($logFile) {
     clearstatcache();
@@ -245,6 +264,7 @@ foreach (array_reverse($logs) as $line) {
             <thead>
                 <tr>
                     <th>Hostname</th>
+                    <th>DNS naam</th>
                     <th>IP</th>
                     <th>MAC</th>
                     <th>Vendor</th>
@@ -255,6 +275,7 @@ foreach (array_reverse($logs) as $line) {
                 <?php foreach ($storedData as $mac => $device): ?>
                     <tr>
                         <td><?= htmlspecialchars($device['hostname'] ?? 'Unknown') ?></td>
+                        <td><?= htmlspecialchars($device['dns_name'] ?? ($device['hostname'] ?? 'Unknown')) ?></td>
                         <td><?= htmlspecialchars($device['ip'] ?? 'Unknown') ?></td>
                         <td><?= htmlspecialchars($device['mac'] ?? 'Unknown') ?></td>
                         <td><?= htmlspecialchars($device['vendor'] ?? 'Unknown') ?></td>
@@ -288,10 +309,5 @@ foreach (array_reverse($logs) as $line) {
 </div>
 
 <?php
-LBWeb::lbfooter();
-?>
-
-<?php  
-// Footer afdrukken
 LBWeb::lbfooter();
 ?>

@@ -16,10 +16,30 @@ $navbar[2]['active'] = false;
 $navbar[3]['Name'] = 'MQTT Settings';
 $navbar[3]['URL'] = 'mqtt.php';
 $navbar[3]['active'] = true;
+$navbar[4]['Name'] = 'DNS Server';
+$navbar[4]['URL'] = 'dns.php';
+$navbar[4]['active'] = false;
 LBWeb::lbheader($template_title, $helplink, $helptemplate);
 
-$config_file = '/opt/loxberry/data/plugins/network_plugin/mqtt_config.ini';
-$log_file = '/opt/loxberry/log/plugins/network_plugin/mqtt_settings.log';
+$pluginName = 'network_plugin';
+$loxberryRoot = getenv('LBHOMEDIR');
+if (!$loxberryRoot) {
+    $marker = '/webfrontend/htmlauth';
+    if (strpos(__DIR__, $marker) !== false) {
+        $loxberryRoot = substr(__DIR__, 0, strpos(__DIR__, $marker));
+    } else {
+        $loxberryRoot = dirname(__DIR__, 3);
+    }
+}
+$loxberryRoot = rtrim($loxberryRoot, '/');
+
+$pluginDataRoot = getenv('LBPDATA') ?: $loxberryRoot . '/data/plugins';
+$pluginLogRoot = getenv('LBPLOG') ?: $loxberryRoot . '/log/plugins';
+$pluginDataRoot = rtrim($pluginDataRoot, '/');
+$pluginLogRoot = rtrim($pluginLogRoot, '/');
+
+$config_file = $pluginDataRoot . '/network_plugin/mqtt_config.ini';
+$log_file = $pluginLogRoot . '/network_plugin/mqtt_settings.log';
 
 function log_message($level, $message) {
     global $log_file;

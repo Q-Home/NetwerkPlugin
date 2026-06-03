@@ -17,13 +17,14 @@ NetwerkPlugin is een krachtige LoxBerry-plugin voor netwerkdetectie, monitoring 
 
 ## 📌 Belangrijkste functies
 
-| Feature      | Beschrijving                                          |
-| ------------ | ----------------------------------------------------- |
-| Detectie     | Vind apparaten in je netwerk zonder handmatig scannen |
-| Monitoring   | Houd beschikbaarheid en connectiviteit in de gaten    |
-| Integratie   | Koppel netwerkstatussen aan Loxone automatiseringen   |
-| Logging      | Verzamel diagnostische data voor probleemoplossing    |
-| Configuratie | Stel bereik, interval en meldingen flexibel in        |
+| Feature      | Beschrijving                                           |
+| ------------ | ------------------------------------------------------ |
+| Detectie     | Vind apparaten in je netwerk zonder handmatig scannen  |
+| Monitoring   | Houd beschikbaarheid en connectiviteit in de gaten     |
+| DNS Server   | Biedt een lokale DNS-resolver voor gedetecteerde hosts |
+| Integratie   | Koppel netwerkstatussen aan Loxone automatiseringen    |
+| Logging      | Verzamel diagnostische data voor probleemoplossing     |
+| Configuratie | Stel bereik, interval en meldingen flexibel in         |
 
 ## ⚙️ Vereisten
 
@@ -73,6 +74,43 @@ Configureer hier onder andere:
 - Loggingniveau
 - Integratie-instellingen
 - Meldingen en statusupdates
+- DNS-servernaamgeving voor lokaal netwerk
+
+## 🌐 DNS Server
+
+Met de nieuwe DNS-serverfunctie kun je gedetecteerde devices lokaal benaderen via hostname.
+
+### Wat doet het
+
+- Bouwt een eenvoudige A-record resolver op basis van gescande apparaten
+- Voegt handmatige host mappings toe via de webinterface
+- Servert DNS-query's op een gekozen poort (bijvoorbeeld 5353)
+
+### Hoe te gebruiken
+
+1. Open de plugin in de LoxBerry webinterface.
+2. Ga naar **DNS Server**.
+3. Stel het domein in, bijvoorbeeld `local`.
+4. Kies een poort, bijvoorbeeld `5353` als je geen root-toegang hebt.
+5. Voeg handmatige mappings toe als je vaste namen wilt gebruiken.
+6. Start de DNS-server op de LoxBerry met:
+
+```bash
+loxberry php /opt/loxberry/bin/plugins/network_plugin/dns_server.php --port=5353
+```
+
+> Gebruik `--port=53` alleen als je het script als root kunt draaien.
+
+### Voorwaarden
+
+- `php` moet beschikbaar zijn op het systeem
+- `php` moet de `sockets`-extensie hebben
+- `nmap` en netwerkscanning moeten al werken voor hostdetectie
+
+### Resultaat
+
+- Het systeem biedt nu een lokale DNS-resolver voor hosts die door de plugin zijn ontdekt
+- Je kunt vanaf andere apparaten in hetzelfde netwerk query's doen naar `host.local` of `host.<domein>`
 
 ## 📁 Projectstructuur
 

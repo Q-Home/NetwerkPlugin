@@ -1,3 +1,11 @@
 #!/bin/bash
-rm -rf /opt/loxberry/data/plugins/netwerk_plugin/
-echo "MyPlugin uninstalled" >> /opt/loxberry/log/plugins/netwerk_plugin/uninstall.log
+
+PLUGIN_DIR="${LBPDATA:-${LBHOMEDIR}/data/plugins}/network_plugin"
+LOG_DIR="${LBPLOG:-${LBHOMEDIR}/log/plugins}/network_plugin"
+
+if [ -d "$PLUGIN_DIR" ]; then
+    rm -rf "$PLUGIN_DIR"
+fi
+
+mkdir -p "$LOG_DIR"
+echo "Plugin uninstalled" >> "$LOG_DIR/uninstall.log"
